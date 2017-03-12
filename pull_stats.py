@@ -280,9 +280,9 @@ def print_players(player_id2dict):
     ))
     for player in player_id2dict.values():
         print('{username:12s} '
-              '{pp_per_hour:5.1f} '
+              '{pp_per_hour:>5.1f} '
               '{pp:>7} '
-              '{hours:>5} '
+              '{hours:>6} '
               '{rank_world:>4} '
               '{rank_country:>7} '
               '{country} '
