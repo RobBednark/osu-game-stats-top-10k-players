@@ -266,8 +266,10 @@ def scrape_user_profile_pages(player_id2dict):
         player['play_time_hours'] = play_time
 
 def print_players(player_id2dict):
-    print('{username:12s} {pp_per_hour:5}  {rank_world:>4}  {rank_country:>7} {country} {url_profile}'.format(
+    print('{username:12s} {pp_per_hour:5}  {pp:7s}  {hours:5s}  {rank_world:>4}  {rank_country:>7} {country} {url_profile}'.format(
         username='username',
+        pp='pp',
+        hours='hours',
         pp_per_hour='pp/hr',
         rank_world='world',
         rank_country='country',
@@ -277,6 +279,8 @@ def print_players(player_id2dict):
     for player in player_id2dict.values():
         print('{username:12s} '
               '{pp_per_hour:5.1f} '
+              '{pp:>7} '
+              '{hours:>5} '
               '{rank_world:>4} '
               '{rank_country:>7} '
               '{country} '
@@ -284,6 +288,8 @@ def print_players(player_id2dict):
               .format(
                   username=player['username'],
                   pp_per_hour=player['pp_per_hour'],
+                  pp=player['pp_raw'],
+                  hours=player['play_time_hours'],
                   rank_world=player['pp_rank'],
                   rank_country=player['pp_country_rank'],
                   country=player['country'],
