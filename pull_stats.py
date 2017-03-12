@@ -13,7 +13,7 @@ URL_PERFORMANCE_RANKING_ALL_LOCATIONS_FMT = 'https://osu.ppy.sh/p/pp?page={page_
 URL_PERFORMANCE_RANKING_USA = 'https://osu.ppy.sh/p/pp?s=3&o=1&c=US'
 URL_API = 'https://osu.ppy.sh/api/'
 URL_USER_PROFILE = 'https://osu.ppy.sh/u/'  # e.g., https://osu.ppy.sh/u/7695654
-URL_USER_PROFILE_DATA = 'https://osu.ppy.sh/pages/include/profile-general.php?u=2&m=0'
+URL_USER_PROFILE_DATA = 'https://osu.ppy.sh/pages/include/profile-general.php'
 
 ENDPOINT_GET_BEATMAPS = URL_API + 'get_beatmaps'
 ENDPOINT_GET_USER = URL_API + 'get_user'
@@ -145,8 +145,9 @@ def scrape_performance_ranking_page(url, page=1):
 
 def get_user_profile_data_page(user_id):
     # {user} can be username or user_id
-    # e.g., url == https://osu.ppy.sh/u/7695654
-    url = '{url}?u{user_id}&m=0'.format(url=URL_USER_PROFILE_DATA, user_id=user_id)
+    # I obtained this url from inspecting the Network requests for the profile page: https://osu.ppy.sh/u/124493
+    # e.g., https://osu.ppy.sh/pages/include/profile-general.php?u=124493&m=0
+    url = '{url}?u={user_id}&m=0'.format(url=URL_USER_PROFILE_DATA, user_id=user_id)
     resp = requests.get(url=url)
     return resp
 
@@ -256,10 +257,11 @@ def scrape_user_profile_pages(player_id2dict):
         play_time = soup.find('div', attrs=dict(title="Total time spent playing."))
         if play_time:
             play_time = play_time.text
-            # e.g., play_time == 'Play Time: 313 hours'
-            play_time = play_time.split(':')[1]  # play_time == ' 313 hours'
+            # e.g., play_time == 'Play Time: 2,313 hours'
+            play_time = play_time.split(':')[1]  # play_time == ' 2,313 hours'
             play_time = play_time.strip()
-            play_time = play_time.split(' ')[0]  # play_time == 313
+            play_time = play_time.split(' ')[0]  # play_time == 2,313
+            play_time = play_time.replace(',', '')  # play_time == 2313
             play_time = float(play_time)
         else:
             play_time = None
