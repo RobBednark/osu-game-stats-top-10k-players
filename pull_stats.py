@@ -12,7 +12,7 @@ import requests
 URL_PERFORMANCE_RANKING_ALL_LOCATIONS_FMT = 'https://osu.ppy.sh/p/pp?page={page_num}'
 URL_PERFORMANCE_RANKING_USA = 'https://osu.ppy.sh/p/pp?s=3&o=1&c=US'
 URL_API = 'https://osu.ppy.sh/api/'
-URL_USER_PROFILE = 'https://osu.ppy.sh/u/'
+URL_USER_PROFILE = 'https://osu.ppy.sh/u/'  # e.g., https://osu.ppy.sh/u/7695654
 URL_USER_PROFILE_DATA = 'https://osu.ppy.sh/pages/include/profile-general.php?u=2&m=0'
 
 ENDPOINT_GET_BEATMAPS = URL_API + 'get_beatmaps'
@@ -265,13 +265,39 @@ def scrape_user_profile_pages(player_id2dict):
             play_time = None
         player['play_time_hours'] = play_time
 
-if True:
+def print_players(player_id2dict):
+    print('{username:12s} {pp_per_hour:5}  {rank_world:>4}  {rank_country:>7} {country} {url_profile}'.format(
+        username='username',
+        pp_per_hour='pp/hr',
+        rank_world='world',
+        rank_country='country',
+        country='country',
+        url_profile='profile',
+    ))
+    for player in player_id2dict.values():
+        print('{username:12s} '
+              '{pp_per_hour:5.1f} '
+              '{rank_world:>4} '
+              '{rank_country:>7} '
+              '{country} '
+              '{url_profile} '
+              .format(
+                  username=player['username'],
+                  pp_per_hour=player['pp_per_hour'],
+                  rank_world=player['pp_rank'],
+                  rank_country=player['pp_country_rank'],
+                  country=player['country'],
+                  url_profile='{url}{user_id}'.format(url=URL_USER_PROFILE, user_id=player['user_id']),
+        ))
+
+if False:
     get_all_endpoints(username='PiorPie', api_key=API_KEY, beatmap_id=BEATMAP_ID)
     get_all_endpoints(username='Cookiezi', api_key=API_KEY, beatmap_id=BEATMAP_ID)
 
 if True:
-    rank2player = scrape_ranked_players(rank_first=1, rank_last=1)
+    rank2player = scrape_ranked_players(rank_first=1, rank_last=5)
     player_id2dict = get_all_players_stats(rank2player)
     scrape_user_profile_pages(player_id2dict)
     add_pp_per_hour(player_id2dict)
-    pprint(player_id2dict)
+    # pprint(player_id2dict)
+    print_players(player_id2dict)
