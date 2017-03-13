@@ -206,17 +206,6 @@ def get_all_players_stats(rank2player):
         player_id = player['player_id']
         player_id2dict[player_id] = get_player_stats(player)
     return player_id2dict
-'''
-LEFT OFF: Fri 1/6/17 10:35pm
-    table = soup.find('table')
-    col_headers = [header.string for header in table.findAll('th')]
-    col_idx = col_headers.index('Player Name')
-
-    row_1 = table.findAll('tr')[1]
-    cols = row_1.findAll('td')
-    col_strings = [col.text for col in cols]
-    assert col_strings[col_idx].strip() == 'Cookiezi'
-'''
 
 def get_all_endpoints(api_key, beatmap_id, username='PiorPie', beatmap_limit=5):
     resp = get_user_profile_data_page(user_id=username)
