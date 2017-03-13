@@ -195,7 +195,9 @@ def get_player_stats(player):
     json = resp.json()
     if len(json) != 1:
         raise Exception('len(json) != 1, len=[%s]\n%s' % (len(json), pformat(json)))
-    return json[0]
+    player = json[0]
+    player['pp_raw'] = float(player['pp_raw'])
+    return player
     
 def get_all_players_stats(rank2player):
     player_id2dict = {}
@@ -267,7 +269,7 @@ def scrape_user_profile_pages(player_id2dict):
             play_time = None
         player['play_time_hours'] = play_time
 
-def print_players_human(player_id2dict):
+def print_players_human(player_id2dict, sort_by, sort_ascending):
     print(
           '{username:14s} '
           '{pp_per_hour:5} '
@@ -288,7 +290,9 @@ def print_players_human(player_id2dict):
                   username='username',
             )
     )
-    for player in player_id2dict.values():
+    for player in sorted(player_id2dict.values(), 
+                          key=lambda p: p[sort_by],
+                          reverse=not sort_ascending):
         print(
               '{username:14s} '
               '{pp_per_hour:>5.1f} '
@@ -314,10 +318,17 @@ def print_players_human(player_id2dict):
               default='human',
               type=click.Choice(['csv', 'human']),
               help='the output format; "human" for human-readable; "csv" for a comma-separated values file (default: "human")')
+@click.option('--get-all-endpoints', default=False, help='call get_all_endpoints() to see responses from each API endpoint (default: False)')
 @click.option('--rank-first', default=1, help='the first rank (default: 1)')
 @click.option('--rank-last', default=3, help='the last rank (default: 3)')
-@click.option('--get-all-endpoints', default=False, help='call get_all_endpoints() to see responses from each API endpoint (default: False)')
-def pull_stats(format, get_all_endpoints, rank_first, rank_last):
+@click.option('--sort-by', 
+              default='pp_raw',
+              type=click.Choice(['country', 'pp_raw', 'pp_country_rank', 'pp_per_hour']),
+              help='the field to sort by (default: pp_raw)')
+@click.option('--sort-ascending',
+              is_flag=True,
+              help='indicate if sorting should be ascending (default: False)')
+def pull_stats(format, get_all_endpoints, rank_first, rank_last, sort_ascending, sort_by):
     if get_all_endpoints:
         get_all_endpoints(username='PiorPie', api_key=API_KEY, beatmap_id=BEATMAP_ID)
         get_all_endpoints(username='Cookiezi', api_key=API_KEY, beatmap_id=BEATMAP_ID)
@@ -327,7 +338,7 @@ def pull_stats(format, get_all_endpoints, rank_first, rank_last):
     scrape_user_profile_pages(player_id2dict)
     add_pp_per_hour(player_id2dict)
     if format == 'human':
-        print_players_human(player_id2dict)
+        print_players_human(player_id2dict=player_id2dict, sort_by=sort_by, sort_ascending=sort_ascending)
 
 if __name__ == '__main__':
     pull_stats()
