@@ -238,10 +238,11 @@ def get_all_endpoints(api_key, beatmap_id, username='PiorPie', beatmap_limit=5):
                         params=dict(k=api_key, b=beatmap_id, limit=beatmap_limit))
     print_resp(resp)
 
-def calc_values(player_id2dict):
+def calc_values(player_id2dict, ignore_pp_per_hour_greater_than):
     calculated_values = {}
     total_pp_per_hour = 0
-    for player in player_id2dict.values():
+    ignore = []
+    for id, player in player_id2dict.items():
         if player['play_time_hours']:
             pp_per_hour = float(player['pp_raw']) / player['play_time_hours']
         else:
@@ -250,6 +251,12 @@ def calc_values(player_id2dict):
             pp_per_hour = 0
         total_pp_per_hour += pp_per_hour
         player['pp_per_hour'] = pp_per_hour
+        if pp_per_hour >= ignore_pp_per_hour_greater_than:
+            print('IGNORING: username=[%s] pp_per_hour=[%s] >= [%s]' % (player['username'], pp_per_hour, ignore_pp_per_hour_greater_than))
+            ignore.append(id)
+    
+    for id in ignore:
+        del player_id2dict[id] 
 
     all_pp_per_hour = [p['pp_per_hour'] for p in player_id2dict.values()]
     calculated_values['mean_pp_per_hour'] = statistics.mean(all_pp_per_hour)
@@ -289,7 +296,7 @@ def scrape_user_profile_pages(player_id2dict):
 
 def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascending):
     print(
-          '{username:14s} '
+          '{username:15s} '
           '{pp_per_hour:5} '
           '{pp:>7s} '
           '{hours:>4s} '
@@ -312,7 +319,7 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
                           key=lambda p: p[sort_by],
                           reverse=not sort_ascending):
         print(
-              '{username:14s} '
+              '{username:15s} '
               '{pp_per_hour:>5.1f} '
               '{pp:>7.0f} '
               '{hours:>4.0f} '
@@ -340,6 +347,7 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
               help='the output format; "human" for human-readable; "csv" for a comma-separated values file (default: "human")')
 @click.option('--get-all-endpoints', default=False,
               help='call get_all_endpoints() to see responses from each API endpoint (default: False)')
+@click.option('--ignore-pp-per-hour-greater-than', default=40, help='ignore pp-per-hour >= than this number (default: 40)')
 @click.option('--rank-first', default=1, help='the first rank (default: 1)')
 @click.option('--rank-last', default=3, help='the last rank (default: 3)')
 @click.option('--sort-by', 
@@ -349,7 +357,7 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
 @click.option('--sort-ascending',
               is_flag=True,
               help='indicate if sorting should be ascending (default: False)')
-def pull_stats(format, get_all_endpoints, rank_first, rank_last, sort_ascending, sort_by):
+def pull_stats(format, get_all_endpoints, ignore_pp_per_hour_greater_than, rank_first, rank_last, sort_ascending, sort_by):
     if get_all_endpoints:
         get_all_endpoints(username='PiorPie', api_key=API_KEY, beatmap_id=BEATMAP_ID)
         get_all_endpoints(username='Cookiezi', api_key=API_KEY, beatmap_id=BEATMAP_ID)
@@ -357,7 +365,7 @@ def pull_stats(format, get_all_endpoints, rank_first, rank_last, sort_ascending,
     rank2player = scrape_ranked_players(rank_first=rank_first, rank_last=rank_last)
     player_id2dict = get_all_players_stats(rank2player)
     scrape_user_profile_pages(player_id2dict)
-    calculated_values = calc_values(player_id2dict)
+    calculated_values = calc_values(player_id2dict, ignore_pp_per_hour_greater_than=ignore_pp_per_hour_greater_than)
     if format == 'human':
         print_players_human(calculated_values=calculated_values, player_id2dict=player_id2dict, sort_by=sort_by, sort_ascending=sort_ascending)
 
