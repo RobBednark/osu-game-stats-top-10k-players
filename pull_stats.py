@@ -4,6 +4,7 @@ from json.decoder import JSONDecodeError
 from math import ceil
 import os
 from pprint import pformat, pprint
+import statistics
 
 from bs4 import BeautifulSoup
 import click
@@ -250,7 +251,16 @@ def calc_values(player_id2dict):
         total_pp_per_hour += pp_per_hour
         player['pp_per_hour'] = pp_per_hour
 
-    calculated_values['mean_pp_per_hour'] = total_pp_per_hour / len(player_id2dict)
+    all_pp_per_hour = [p['pp_per_hour'] for p in player_id2dict.values()]
+    calculated_values['mean_pp_per_hour'] = statistics.mean(all_pp_per_hour)
+    calculated_values['median_pp_per_hour'] = statistics.median(all_pp_per_hour)
+    calculated_values['median_low_pp_per_hour'] = statistics.median_low(all_pp_per_hour)
+    calculated_values['median_high_pp_per_hour'] = statistics.median_high(all_pp_per_hour)
+    calculated_values['median_grouped_pp_per_hour'] = statistics.median_grouped(all_pp_per_hour)
+    calculated_values['pstdev_pp_per_hour'] = statistics.pstdev(all_pp_per_hour)
+    calculated_values['pvariance_pp_per_hour'] = statistics.pvariance(all_pp_per_hour)
+    calculated_values['stdev_pp_per_hour'] = statistics.stdev(all_pp_per_hour)
+    calculated_values['variance_pp_per_hour'] = statistics.variance(all_pp_per_hour)
     return calculated_values
 
 def scrape_user_profile_pages(player_id2dict):
@@ -320,7 +330,8 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
                   url_profile='{url}{user_id}'.format(url=URL_USER_PROFILE, user_id=player['user_id']),
                   username=player['username'],
         ))
-    print('mean pp_per_hour = [{mean:.2f}]'.format(mean=calculated_values['mean_pp_per_hour']))
+    for stat, value in sorted(calculated_values.items()):
+        print('{} = [{:.2f}]'.format(stat, value))
 
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))  # also use -h for help
 @click.option('--format', 
