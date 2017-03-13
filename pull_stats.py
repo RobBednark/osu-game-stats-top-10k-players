@@ -267,45 +267,67 @@ def scrape_user_profile_pages(player_id2dict):
             play_time = None
         player['play_time_hours'] = play_time
 
-def print_players(player_id2dict):
-    print('{username:12s} {pp_per_hour:5}  {pp:7s}  {hours:5s}  {rank_world:>4}  {rank_country:>7} {country} {url_profile}'.format(
-        username='username',
-        pp='pp',
-        hours='hours',
-        pp_per_hour='pp/hr',
-        rank_world='world',
-        rank_country='country',
-        country='country',
-        url_profile='profile',
-    ))
+def print_players_human(player_id2dict):
+    print(
+          '{username:14s} '
+          '{pp_per_hour:5} '
+          '{pp:>7s} '
+          '{hours:>4s} '
+          '{rank_world:>5} '
+          '{rank_country:>7} '
+          '{country:>7} '
+          '{url_profile}'
+          .format(
+                  country='country',
+                  hours='hour',
+                  pp='pp',
+                  pp_per_hour='pp/hr',
+                  rank_country='country',
+                  rank_world='world',
+                  url_profile='profile',
+                  username='username',
+            )
+    )
     for player in player_id2dict.values():
-        print('{username:12s} '
+        print(
+              '{username:14s} '
               '{pp_per_hour:>5.1f} '
-              '{pp:>7} '
-              '{hours:>6} '
-              '{rank_world:>4} '
+              '{pp:>7.0f} '
+              '{hours:>4.0f} '
+              '{rank_world:>5} '
               '{rank_country:>7} '
-              '{country} '
+              '{country:^7} '
               '{url_profile} '
               .format(
-                  username=player['username'],
-                  pp_per_hour=player['pp_per_hour'],
-                  pp=player['pp_raw'],
-                  hours=player['play_time_hours'],
-                  rank_world=player['pp_rank'],
-                  rank_country=player['pp_country_rank'],
                   country=player['country'],
+                  hours=player['play_time_hours'],
+                  pp=float(player['pp_raw']),
+                  pp_per_hour=player['pp_per_hour'],
+                  rank_country=player['pp_country_rank'],
+                  rank_world=player['pp_rank'],
                   url_profile='{url}{user_id}'.format(url=URL_USER_PROFILE, user_id=player['user_id']),
+                  username=player['username'],
         ))
 
-if False:
-    get_all_endpoints(username='PiorPie', api_key=API_KEY, beatmap_id=BEATMAP_ID)
-    get_all_endpoints(username='Cookiezi', api_key=API_KEY, beatmap_id=BEATMAP_ID)
+@click.command(context_settings=dict(help_option_names=['-h', '--help']))  # also use -h for help
+@click.option('--format', 
+              default='human',
+              type=click.Choice(['csv', 'human']),
+              help='the output format; "human" for human-readable; "csv" for a comma-separated values file (default: "human")')
+@click.option('--rank-first', default=1, help='the first rank (default: 1)')
+@click.option('--rank-last', default=3, help='the last rank (default: 3)')
+@click.option('--get-all-endpoints', default=False, help='call get_all_endpoints() to see responses from each API endpoint (default: False)')
+def pull_stats(format, get_all_endpoints, rank_first, rank_last):
+    if get_all_endpoints:
+        get_all_endpoints(username='PiorPie', api_key=API_KEY, beatmap_id=BEATMAP_ID)
+        get_all_endpoints(username='Cookiezi', api_key=API_KEY, beatmap_id=BEATMAP_ID)
 
-if True:
-    rank2player = scrape_ranked_players(rank_first=1, rank_last=5)
+    rank2player = scrape_ranked_players(rank_first=rank_first, rank_last=rank_last)
     player_id2dict = get_all_players_stats(rank2player)
     scrape_user_profile_pages(player_id2dict)
     add_pp_per_hour(player_id2dict)
-    # pprint(player_id2dict)
-    print_players(player_id2dict)
+    if format == 'human':
+        print_players_human(player_id2dict)
+
+if __name__ == '__main__':
+    pull_stats()
