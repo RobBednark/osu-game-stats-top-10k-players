@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+'''
+TODO:
+    o save to db (use SQLAlchemy)
+    o add percentile for each stat per player (pp_per_hour, ...)
+'''
+
 from json.decoder import JSONDecodeError
 from math import ceil
 import os
