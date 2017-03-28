@@ -16,6 +16,8 @@ from bs4 import BeautifulSoup
 import click
 import requests
 
+from db import NoResultFound, Player, session
+
 URL_PERFORMANCE_RANKING_ALL_LOCATIONS_FMT = 'https://osu.ppy.sh/p/pp?page={page_num}'
 URL_PERFORMANCE_RANKING_USA = 'https://osu.ppy.sh/p/pp?s=3&o=1&c=US'
 URL_API = 'https://osu.ppy.sh/api/'
@@ -335,12 +337,37 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
     for stat, value in sorted(calculated_values.items()):
         print('{} = [{:.2f}]'.format(stat, value))
 
+def save_to_db(player_id2dict):
+    for player in player_id2dict.values():
+        try:
+            player_db = session.query(Player).filter(Player.user_id==player['user_id']).one()
+        except NoResultFound:
+            player_db = Player()
+        player_db.accuracy=player['accuracy'],
+        player_db.count50=player['count50'],
+        player_db.count100=player['count100'],
+        player_db.count300=player['count300'],
+        player_db.count_rank_a=player['count_rank_a'],
+        player_db.count_rank_s=player['count_rank_s'],
+        player_db.count_rank_ss=player['count_rank_ss'],
+        player_db.country=player['country'],
+        player_db.level=player['level'],
+        player_db.play_count=player['playcount'],
+        player_db.pp_country_rank=player['pp_country_rank'],
+        player_db.rank=player['pp_rank'],
+        player_db.ranked_score=player['ranked_score'],
+        player_db.total_score=player['total_score'],
+        player_db.user_id=player['user_id'],
+        player_db.username=player['username'],
+        session.add(player_db)
+        session.commit()
+
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))  # also use -h for help
 @click.option('--format', 
               default='human',
               type=click.Choice(['csv', 'human']),
               help='the output format; "human" for human-readable; "csv" for a comma-separated values file (default: "human")')
-@click.option('--get-all-endpoints', default=False,
+@click.option('--get-all-endpoints', is_flag=True,
               help='call get_all_endpoints() to see responses from each API endpoint (default: False)')
 @click.option('--ignore-pp-per-hour-greater-than', default=40, help='ignore pp-per-hour >= than this number (default: 40)')
 @click.option('--rank-first', default=1, help='the first rank (default: 1)')
@@ -352,6 +379,7 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
 @click.option('--sort-ascending',
               is_flag=True,
               help='indicate if sorting should be ascending (default: False)')
+@click.option('--usernames', default=None, help='list of comma-separated usernames (default: None)')
 def pull_stats(format, get_all_endpoints, ignore_pp_per_hour_greater_than, rank_first, rank_last, sort_ascending, sort_by):
     if get_all_endpoints:
         get_all_endpoints(username='PiorPie', api_key=API_KEY, beatmap_id=BEATMAP_ID)
@@ -363,6 +391,7 @@ def pull_stats(format, get_all_endpoints, ignore_pp_per_hour_greater_than, rank_
     calculated_values = calc_values(player_id2dict, ignore_pp_per_hour_greater_than=ignore_pp_per_hour_greater_than)
     if format == 'human':
         print_players_human(calculated_values=calculated_values, player_id2dict=player_id2dict, sort_by=sort_by, sort_ascending=sort_ascending)
+    save_to_db(player_id2dict)
 
 if __name__ == '__main__':
     pull_stats()
