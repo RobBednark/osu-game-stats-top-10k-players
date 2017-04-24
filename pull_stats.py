@@ -34,12 +34,13 @@ ENDPOINT_GET_REPLAY = URL_API + 'get_replay'
 API_KEY = os.environ.get('OSU_API_KEY')
 BEATMAP_ID = 899732
 
+
 def print_resp(resp):
     print('-' * 80)
     print(resp.url)
     try:
         json = resp.json()
-    except JSONDecodeError as exception:
+    except JSONDecodeError:
         json = '(JSONDecodeError)'
     pprint(json)
     print('status code = [%s]' % resp.status_code)
@@ -73,11 +74,13 @@ def convert_data(name2text):
 
     return converted
 
+
 def get_page_range_for_ranks(rank_first, rank_last):
     NUM_RANKS_PER_PAGE = 50
     first_page = ceil(rank_first / NUM_RANKS_PER_PAGE)
     last_page = ceil(rank_last / NUM_RANKS_PER_PAGE)
     return first_page, last_page
+
 
 def scrape_ranked_players(rank_first=1, rank_last=2):
     """
@@ -115,13 +118,6 @@ def scrape_ranked_players(rank_first=1, rank_last=2):
     # ---- ----------- --------  --------------   -----------   --  ---  ---
     #  #1  Vaxei        97.94%   85,461 (lv.100)  12,506pp      31  493  509
 
-
-    COLUMN_NAMES_TRANSLATION = {
-        'position_6': 'no_miss_93',
-        'position_7': 'no_miss_7',
-        'position_8': 'no_miss_8',
-    }
-
     first_page, last_page = get_page_range_for_ranks(rank_first, rank_last)
     rank2info = {}
     for page in range(first_page, last_page + 1):
@@ -147,10 +143,12 @@ def scrape_ranked_players(rank_first=1, rank_last=2):
             break
     return rank2info
 
+
 def scrape_performance_ranking_page(url, page=1):
     resp = requests.get(url=URL_PERFORMANCE_RANKING_ALL_LOCATIONS)
     soup = BeautifulSoup(resp.content)
     table = soup.find('table', class_='beatmapListing')
+
 
 def get_user_profile_data_page(user_id):
     # {user} can be username or user_id
@@ -159,6 +157,7 @@ def get_user_profile_data_page(user_id):
     url = '{url}?u={user_id}&m=0'.format(url=URL_USER_PROFILE_DATA, user_id=user_id)
     resp = requests.get(url=url)
     return resp
+
 
 def get_player_stats(player):
     # Here are the fields that scrape_ranked_players() gets, and the ones that this GET_USER endpoint also gets:
@@ -207,13 +206,15 @@ def get_player_stats(player):
     player = json[0]
     player['pp_raw'] = float(player['pp_raw'])
     return player
-    
+
+
 def get_all_players_stats(rank2player):
     player_id2dict = {}
     for player in rank2player.values():
         player_id = player['player_id']
         player_id2dict[player_id] = get_player_stats(player)
     return player_id2dict
+
 
 def get_all_endpoints(api_key, beatmap_id, username='PiorPie', beatmap_limit=5):
     resp = get_user_profile_data_page(user_id=username)
@@ -235,6 +236,7 @@ def get_all_endpoints(api_key, beatmap_id, username='PiorPie', beatmap_limit=5):
                         params=dict(k=api_key, b=beatmap_id, limit=beatmap_limit))
     print_resp(resp)
 
+
 def calc_values(player_id2dict, ignore_pp_per_hour_greater_than):
     calculated_values = {}
     total_pp_per_hour = 0
@@ -251,9 +253,9 @@ def calc_values(player_id2dict, ignore_pp_per_hour_greater_than):
         if pp_per_hour >= ignore_pp_per_hour_greater_than:
             print('IGNORING: username=[%s] pp_per_hour=[%s] >= [%s]' % (player['username'], pp_per_hour, ignore_pp_per_hour_greater_than))
             ignore.append(id)
-    
+
     for id in ignore:
-        del player_id2dict[id] 
+        del player_id2dict[id]
 
     all_pp_per_hour = [p['pp_per_hour'] for p in player_id2dict.values()]
     calculated_values['mean_pp_per_hour'] = statistics.mean(all_pp_per_hour)
@@ -266,6 +268,7 @@ def calc_values(player_id2dict, ignore_pp_per_hour_greater_than):
     calculated_values['stdev_pp_per_hour'] = statistics.stdev(all_pp_per_hour)
     calculated_values['variance_pp_per_hour'] = statistics.variance(all_pp_per_hour)
     return calculated_values
+
 
 def scrape_user_profile_pages(player_id2dict):
     player_num = 0
@@ -291,6 +294,7 @@ def scrape_user_profile_pages(player_id2dict):
             play_time = None
         player['play_time_hours'] = play_time
 
+
 def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascending):
     print(
           '{username:15s} '
@@ -312,9 +316,9 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
                   username='username',
             )
     )
-    for player in sorted(player_id2dict.values(), 
-                          key=lambda p: p[sort_by],
-                          reverse=not sort_ascending):
+    for player in sorted(player_id2dict.values(),
+                         key=lambda p: p[sort_by],
+                         reverse=not sort_ascending):
         print(
               '{username:15s} '
               '{pp_per_hour:>5.1f} '
@@ -333,37 +337,39 @@ def print_players_human(calculated_values, player_id2dict, sort_by, sort_ascendi
                   rank_world=player['pp_rank'],
                   url_profile='{url}{user_id}'.format(url=URL_USER_PROFILE, user_id=player['user_id']),
                   username=player['username'],
-        ))
+                ))
     for stat, value in sorted(calculated_values.items()):
         print('{} = [{:.2f}]'.format(stat, value))
+
 
 def save_to_db(player_id2dict):
     for player in player_id2dict.values():
         try:
-            player_db = session.query(Player).filter(Player.user_id==player['user_id']).one()
+            player_db = session.query(Player).filter(Player.user_id == player['user_id']).one()
         except NoResultFound:
             player_db = Player()
-        player_db.accuracy=player['accuracy'],
-        player_db.count50=player['count50'],
-        player_db.count100=player['count100'],
-        player_db.count300=player['count300'],
-        player_db.count_rank_a=player['count_rank_a'],
-        player_db.count_rank_s=player['count_rank_s'],
-        player_db.count_rank_ss=player['count_rank_ss'],
-        player_db.country=player['country'],
-        player_db.level=player['level'],
-        player_db.play_count=player['playcount'],
-        player_db.pp_country_rank=player['pp_country_rank'],
-        player_db.rank=player['pp_rank'],
-        player_db.ranked_score=player['ranked_score'],
-        player_db.total_score=player['total_score'],
-        player_db.user_id=player['user_id'],
-        player_db.username=player['username'],
+        player_db.accuracy = player['accuracy'],
+        player_db.count50 = player['count50'],
+        player_db.count100 = player['count100'],
+        player_db.count300 = player['count300'],
+        player_db.count_rank_a = player['count_rank_a'],
+        player_db.count_rank_s = player['count_rank_s'],
+        player_db.count_rank_ss = player['count_rank_ss'],
+        player_db.country = player['country'],
+        player_db.level = player['level'],
+        player_db.play_count = player['playcount'],
+        player_db.pp_country_rank = player['pp_country_rank'],
+        player_db.rank = player['pp_rank'],
+        player_db.ranked_score = player['ranked_score'],
+        player_db.total_score = player['total_score'],
+        player_db.user_id = player['user_id'],
+        player_db.username = player['username'],
         session.add(player_db)
         session.commit()
 
+
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))  # also use -h for help
-@click.option('--format', 
+@click.option('--format',
               default='human',
               type=click.Choice(['csv', 'human']),
               help='the output format; "human" for human-readable; "csv" for a comma-separated values file (default: "human")')
@@ -372,7 +378,7 @@ def save_to_db(player_id2dict):
 @click.option('--ignore-pp-per-hour-greater-than', default=40, help='ignore pp-per-hour >= than this number (default: 40)')
 @click.option('--rank-first', default=1, help='the first rank (default: 1)')
 @click.option('--rank-last', default=3, help='the last rank (default: 3)')
-@click.option('--sort-by', 
+@click.option('--sort-by',
               default='pp_raw',
               type=click.Choice(['country', 'pp_raw', 'pp_country_rank', 'pp_per_hour']),
               help='the field to sort by (default: pp_raw)')
@@ -380,7 +386,7 @@ def save_to_db(player_id2dict):
               is_flag=True,
               help='indicate if sorting should be ascending (default: False)')
 @click.option('--usernames', default=None, help='list of comma-separated usernames (default: None)')
-def pull_stats(format, get_all_endpoints, ignore_pp_per_hour_greater_than, rank_first, rank_last, sort_ascending, sort_by):
+def pull_stats(format, get_all_endpoints, ignore_pp_per_hour_greater_than, rank_first, rank_last, sort_ascending, sort_by, usernames):
     if get_all_endpoints:
         get_all_endpoints(username='PiorPie', api_key=API_KEY, beatmap_id=BEATMAP_ID)
         get_all_endpoints(username='Cookiezi', api_key=API_KEY, beatmap_id=BEATMAP_ID)
@@ -392,6 +398,7 @@ def pull_stats(format, get_all_endpoints, ignore_pp_per_hour_greater_than, rank_
     if format == 'human':
         print_players_human(calculated_values=calculated_values, player_id2dict=player_id2dict, sort_by=sort_by, sort_ascending=sort_ascending)
     save_to_db(player_id2dict)
+
 
 if __name__ == '__main__':
     pull_stats()
